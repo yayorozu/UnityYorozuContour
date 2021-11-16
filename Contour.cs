@@ -8,7 +8,7 @@ using UnityEditor;
 
 namespace Yorozu
 {
-	public class ConTour
+	public class Contour
 	{
 		private Color[,] _cacheColors;
 		private List<List<Vector2Int>> _positionList;
@@ -26,7 +26,7 @@ namespace Yorozu
 			new Vector2Int(-1, 0),
 		};
 
-		public ConTour(Texture2D texture)
+		public Contour(Texture2D texture)
 		{
 			_width = texture.width;
 			_height = texture.height;
@@ -81,7 +81,8 @@ namespace Yorozu
 #if UNITY_EDITOR
 				EditorUtility.DisplayProgressBar("Search Texture", $"{_height - y}/{_height}", Mathf.Lerp(_height, 0, y));
 #endif
-				for (var x = _width - 1; x >= 0; x--)
+				//
+				for (var x = 0; x < _width; x++)
 				{
 					var color = GetPixel(x, y);
 					if (color != findColor)
@@ -110,8 +111,7 @@ namespace Yorozu
 					}
 
 					_positionList.Add(findContours);
-					var nextX = group.Min(p => p.x);
-					x = Mathf.Min(x, nextX);
+					x = group.Max(p => p.x);
 				}
 			}
 #if UNITY_EDITOR
@@ -123,17 +123,18 @@ namespace Yorozu
 
 		private bool IsSkip(int x, int y, out int next)
 		{
+			var search = new Vector2Int(x, y);
 			// 探索済みの範囲が含まれていたら最後まですっ飛ばす
 			foreach (var list in _positionList)
 			{
-				if (!list.Contains(new Vector2Int(x, y)))
+				if (!list.Contains(search))
 				{
 					continue;
 				}
 
 				next = list
 					.Where(p => p.y == y)
-					.Min(p => p.x);
+					.Max(p => p.x);
 
 				return true;
 			}
