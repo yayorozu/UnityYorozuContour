@@ -10,11 +10,16 @@ namespace Yorozu
 {
 	public class Contour
 	{
-		private Color[,] _cacheColors;
-		private List<List<Vector2Int>> _positionList;
-
+		private readonly Color[,] _cacheColors;
+		private readonly List<List<Vector2Int>> _positionList;
 		private readonly int _width;
 		private readonly int _height;
+		private bool _binarization;
+
+		/// <summary>
+		/// 輪郭の座標データ
+		/// </summary>
+		public IEnumerable<List<Vector2Int>> Points => _positionList;
 
 		/// <summary>
 		/// 左下から反時計回り
@@ -32,13 +37,19 @@ namespace Yorozu
 			_height = texture.height;
 			_positionList = new List<List<Vector2Int>>();
 			_cacheColors = new Color[_width, _height];
+			var copyTexture = new Texture2D(_width, _height, texture.format, false);
+
+			Graphics.CopyTexture(texture, copyTexture);
+
 			for (var x = 0; x < _width; x++)
 			{
 				for (var y = 0; y < _height; y++)
 				{
-					_cacheColors[x, y] = texture.GetPixel(x, y);
+					_cacheColors[x, y] = copyTexture.GetPixel(x, y);
 				}
 			}
+
+			Object.DestroyImmediate(copyTexture);
 		}
 
 		private Color GetPixel(int x, int y)
@@ -46,23 +57,75 @@ namespace Yorozu
 			return _cacheColors[x, y];
 		}
 
-		public Texture2D Search(Color findColor, Color conTourColor)
+		/// <summary>
+		/// テクスチャデータを2値化する
+		/// </summary>
+		public void ToBinarization(float threshold = 0.5f)
+		{
+			_binarization = true;
+			var t = Mathf.Clamp01(threshold);
+			for (var x = 0; x < _width; x++)
+			{
+				for (var y = 0; y < _height; y++)
+				{
+					var color = GetPixel(x, y);
+					var v = color.r * 0.3f + color.g * 0.59f + color.b * 0.11f;
+					var newColor = v > t ? Color.white : Color.black;
+					newColor.a = color.a;
+					_cacheColors[x, y] = newColor;
+				}
+			}
+		}
+
+		/// <summary>
+		/// 2値化したテクスチャを取得
+		/// </summary>
+		/// <returns></returns>
+		public Texture2D GetBinarizationTexture()
+		{
+			// 2値化してない
+			if (!_binarization)
+			{
+				Debug.LogError("Please Call ToBinarization Method.");
+				return null;
+			}
+
+			var texture = new Texture2D(_width, _height, TextureFormat.RGBA32, false);
+			for (var x = 0; x < _width; x++)
+				for (var y = 0; y < _height; y++)
+					texture.SetPixel(x, y, GetPixel(x, y));
+
+			texture.Apply();
+
+			return texture;
+		}
+
+		/// <summary>
+		/// 輪郭を塗ったテクスチャを取得
+		/// </summary>
+		public Texture2D GetContourTexture(Color contourColor)
 		{
 			var texture = new Texture2D(_width, _height, TextureFormat.RGBA32, false);
 			for (var x = 0; x < _width; x++)
 				for (var y = 0; y < _height; y++)
 					texture.SetPixel(x, y, Color.white);
 
-			if (!Search(findColor))
-				return null;
-
-			foreach (var list in _positionList)
+			if (_positionList.Count > 0)
 			{
-				foreach (var position in list)
+				foreach (var list in _positionList)
 				{
-					texture.SetPixel(position.x, position.y, conTourColor);
+					foreach (var position in list)
+					{
+						texture.SetPixel(position.x, position.y, contourColor);
+					}
 				}
 			}
+			else
+			{
+				// 輪郭が見つからなかった
+				Debug.Log("Contour not found.");
+			}
+
 			texture.Apply();
 
 			return texture;
@@ -74,16 +137,24 @@ namespace Yorozu
 		public bool Search(Color findColor)
 		{
 #if UNITY_EDITOR
-			EditorUtility.DisplayProgressBar("Search Texture", $"{0}/{_height}", 0f);
+			EditorUtility.DisplayCancelableProgressBar("Search Texture", $"{0}/{_height * _width}", 0f);
 #endif
 			for (var y = _height - 1; y >= 0; y--)
 			{
-#if UNITY_EDITOR
-				EditorUtility.DisplayProgressBar("Search Texture", $"{_height - y}/{_height}", Mathf.Lerp(_height, 0, y));
-#endif
-				//
 				for (var x = 0; x < _width; x++)
 				{
+#if UNITY_EDITOR
+					if (EditorUtility.DisplayCancelableProgressBar(
+						"Search Texture",
+						$"{(_height - y - 1) * _width + x}/{_height * _width}",
+						((_height - y - 1) * _width + x) / (float)(_height * _width))
+					)
+					{
+						Debug.Log($"{_positionList.Count}");
+						EditorUtility.ClearProgressBar();
+						return false;
+					}
+#endif
 					var color = GetPixel(x, y);
 					if (color != findColor)
 						continue;
@@ -99,11 +170,12 @@ namespace Yorozu
 					// Xを見つけた最大まですすめる
 					var group = findContours
 						.Where(p => p.y == y);
+
 					// 最後まで探索できなかった
 					if (!group.Any())
 					{
 						// 例外
-						Debug.LogError("Fail Search ConTour.");
+						Debug.LogError("Fail Search Contour.");
 #if UNITY_EDITOR
 						EditorUtility.ClearProgressBar();
 #endif
@@ -117,10 +189,12 @@ namespace Yorozu
 #if UNITY_EDITOR
 			EditorUtility.ClearProgressBar();
 #endif
-
 			return true;
 		}
 
+		/// <summary>
+		/// すでに輪郭を調査済みだった場合スキップする
+		/// </summary>
 		private bool IsSkip(int x, int y, out int next)
 		{
 			var search = new Vector2Int(x, y);
@@ -144,7 +218,7 @@ namespace Yorozu
 		}
 
 		/// <summary>
-		/// 輪郭をトレース
+		/// 輪郭を探す
 		/// </summary>
 		private List<Vector2Int> FindConTour(Color targetColor, int startX, int startY)
 		{
@@ -174,7 +248,7 @@ namespace Yorozu
 				tracePosition = target;
 				positions.Add(target);
 				startIndex = (index + 6) % indexes.Length;
-				i = 0;
+				i = -1;
 
 				// 探索終了
 				if (target.x == startX && target.y == startY)
