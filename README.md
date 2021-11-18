@@ -43,10 +43,10 @@ private void TraceConTourByBinarization(Texture2D src, float threshold)
     contour.ToBinarization(threshold);
 
     // 輪郭を探索
-		if (!contour.Search(Color.black))
-		{
-  			return;
-		}
+    if (!contour.Search(Color.black))
+    {
+        return;
+    }
 
     // 2値化 したテクスチャを取得
     var binTexture = contour.GetBinarizationTexture();
