@@ -66,7 +66,7 @@ namespace Yorozu.EditorTool
 			}
 
 			var texture = contour.GetContourTexture(Color.black);
-			var savePath = EditorUtility.SaveFilePanelInProject("Select Save Path", "hoge", "png", "Editor");
+			var savePath = EditorUtility.SaveFilePanelInProject("Select Save Path", "Contour", "png", "");
 			if (texture != null && !string.IsNullOrEmpty(savePath))
 			{
 				System.IO.File.WriteAllBytes(savePath, texture.EncodeToPNG());
@@ -80,7 +80,7 @@ namespace Yorozu.EditorTool
 			contour.ToBinarization(threshold);
 
 			var texture = contour.GetBinarizationTexture();
-			var savePath = EditorUtility.SaveFilePanelInProject("Select Save Path", "hoge", "png", "Editor");
+			var savePath = EditorUtility.SaveFilePanelInProject("Select Save Path", "Binarization", "png", "");
 			if (texture != null && !string.IsNullOrEmpty(savePath))
 			{
 				System.IO.File.WriteAllBytes(savePath, texture.EncodeToPNG());
