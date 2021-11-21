@@ -6,11 +6,11 @@ namespace Yorozu.EditorTool
 	public class ContourEditorWindow : EditorWindow
 	{
 		[MenuItem("Tools/Contor")]
-		private static void Show()
+		private static void ShowWindow()
 		{
 			var window = GetWindow<ContourEditorWindow>();
 			window.titleContent = new GUIContent("Contour Search");
-			((EditorWindow) window).Show();
+			window.Show();
 		}
 
 		[SerializeField]
