@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -101,6 +102,33 @@ namespace Yorozu
 		}
 
 		/// <summary>
+		/// もとのテクスチャに輪郭を合成
+		/// </summary>
+		public Texture2D BlendContourTexture(Texture2D src, Color contourColor)
+		{
+			if (_positionList.Count <= 0)
+			{
+				Debug.LogWarning("Contour not found.");
+				return null;
+			}
+
+			var copyTexture = new Texture2D(_width, _height, src.format, false);
+			Graphics.CopyTexture(src, copyTexture);
+
+			foreach (var list in _positionList)
+			{
+				foreach (var position in list)
+				{
+					copyTexture.SetPixel(position.x, position.y, contourColor);
+				}
+			}
+
+			copyTexture.Apply();
+
+			return copyTexture;
+		}
+
+		/// <summary>
 		/// 輪郭を塗ったテクスチャを取得
 		/// </summary>
 		public Texture2D GetContourTexture(Color contourColor)
@@ -123,7 +151,7 @@ namespace Yorozu
 			else
 			{
 				// 輪郭が見つからなかった
-				Debug.Log("Contour not found.");
+				Debug.LogWarning("Contour not found.");
 			}
 
 			texture.Apply();
@@ -241,8 +269,8 @@ namespace Yorozu
 				if (color != targetColor)
 					continue;
 
-				// 2つ以上は許容しない
-				if (positions.Count(p => p.x == target.x && p.y == target.y) >= 5)
+				// 3つ以上は許容しない
+				if (positions.Count(p => p.x == target.x && p.y == target.y) >= 3)
 					break;
 
 				tracePosition = target;

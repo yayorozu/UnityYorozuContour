@@ -5,7 +5,7 @@ namespace Yorozu.EditorTool
 {
 	public class ContourEditorWindow : EditorWindow
 	{
-		[MenuItem("Tools/Contor")]
+		[MenuItem("Tools/Contour")]
 		private static void ShowWindow()
 		{
 			var window = GetWindow<ContourEditorWindow>();
@@ -43,8 +43,14 @@ namespace Yorozu.EditorTool
 				{
 					if (GUILayout.Button("Generate Binarization Texture"))
 					{
-						SaveBinarizationTexture(_texture2D, _threshold);
+						SaveBinarizationTexture(_texture2D, _threshold, false);
 					}
+
+					if (GUILayout.Button("Search Binarization Contour & Blend Texture"))
+					{
+						SaveBinarizationTexture(_texture2D, _threshold, true);
+					}
+
 				}
 			}
 		}
@@ -54,7 +60,7 @@ namespace Yorozu.EditorTool
 		/// </summary>
 		private void TraceConTour(Texture2D src, Color color, float threshold)
 		{
-			var contour = new Yorozu.Contour(src);
+			var contour = new Contour(src);
 			if (_isBinarization)
 			{
 				contour.ToBinarization(threshold);
@@ -74,13 +80,22 @@ namespace Yorozu.EditorTool
 			}
 		}
 
-		private void SaveBinarizationTexture(Texture2D src, float threshold)
+		private void SaveBinarizationTexture(Texture2D src, float threshold, bool isBlend)
 		{
-			var contour = new Yorozu.Contour(src);
+			var contour = new Contour(src);
 			contour.ToBinarization(threshold);
+			if (isBlend)
+			{
+				contour.Search(Color.black);
+			}
 
-			var texture = contour.GetBinarizationTexture();
-			var savePath = EditorUtility.SaveFilePanelInProject("Select Save Path", "Binarization", "png", "");
+			Texture2D texture;
+			texture = isBlend ?
+				contour.BlendContourTexture(src, Color.black) :
+				contour.GetBinarizationTexture();
+
+			var fileName = isBlend ? "Blend" : "Binarization";
+			var savePath = EditorUtility.SaveFilePanelInProject("Select Save Path", fileName, "png", "");
 			if (texture != null && !string.IsNullOrEmpty(savePath))
 			{
 				System.IO.File.WriteAllBytes(savePath, texture.EncodeToPNG());
