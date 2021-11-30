@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -184,7 +182,10 @@ namespace Yorozu
 					}
 #endif
 					var color = GetPixel(x, y);
-					if (color != findColor)
+					if (color.a <= 0f)
+						continue;
+
+					if (!Compare(color, findColor))
 						continue;
 
 					if (IsSkip(x, y, out var next))
@@ -195,6 +196,10 @@ namespace Yorozu
 
 					// 輪郭検索
 					var findContours = FindConTour(findColor, x, y);
+					// 1ピクだけ見つけた場合
+					if (findContours.Count <= 0)
+						continue;
+
 					// Xを見つけた最大まですすめる
 					var group = findContours
 						.Where(p => p.y == y);
@@ -204,14 +209,13 @@ namespace Yorozu
 					{
 						// 例外
 						Debug.LogError("Fail Search Contour.");
-#if UNITY_EDITOR
-						EditorUtility.ClearProgressBar();
-#endif
-						return false;
+						Debug.LogError(findContours.Count);
 					}
-
-					_positionList.Add(findContours);
-					x = group.Max(p => p.x);
+					else
+					{
+						_positionList.Add(findContours);
+						x = group.Max(p => p.x);
+					}
 				}
 			}
 #if UNITY_EDITOR
@@ -266,7 +270,10 @@ namespace Yorozu
 					continue;
 
 				var color = GetPixel(target.x, target.y);
-				if (color != targetColor)
+				if (color.a <= 0f)
+					continue;
+
+				if (!Compare(color, targetColor))
 					continue;
 
 				// 3つ以上は許容しない
@@ -284,6 +291,14 @@ namespace Yorozu
 			}
 
 			return positions;
+		}
+
+		private static bool Compare(Color a, Color b)
+		{
+			var num1 = a[0] - b[0];
+			var num2 = a[1] - b[1];
+			var num3 = a[2] - b[2];
+			return (double) num1 * num1 + (double) num2 * num2 + (double) num3 * num3 < 9.999999439624929E-11;
 		}
 	}
 }
