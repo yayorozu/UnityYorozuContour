@@ -4,9 +4,9 @@
 
 輪郭線追跡アルゴリズムを利用してテクスチャの輪郭を検索する
 
-
-
 ※ テクスチャによってはうまく輪郭が取れない場合がある
+
+<img src="https://cdn-ak.f.st-hatena.com/images/fotolife/h/hacchi_man/20211130/20211130231346.png" width="200"><img src="https://cdn-ak.f.st-hatena.com/images/fotolife/h/hacchi_man/20211130/20211130231400.png" width="200">
 
 ## 使い方
 
@@ -54,3 +54,8 @@ private void TraceConTourByBinarization(Texture2D src, float threshold)
     var texture = contour.GetContourTexture(Color.black);
 }
 ```
+
+# ライセンス
+
+本プロジェクトは [MIT License](LICENSE) の下でライセンスされています。  
+詳細については、LICENSE ファイルをご覧ください。
